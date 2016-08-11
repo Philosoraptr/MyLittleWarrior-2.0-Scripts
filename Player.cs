@@ -5,21 +5,23 @@ using System.Collections;
 [RequireComponent (typeof (PlayerStats))]
 public class Player : MonoBehaviour {
 
-    public float moveSpeed = 2;
-
-    float gravity = -20;
+    public float moveSpeed = 2.0;
+	public float direction = -1.0f;
+	
+    float gravity = -20.0;
     Vector3 velocity;
 
     Controller2D controller;
 
     Animator anim;
-
+	bool attackBool;
+	
 ////////////////////////////////////////////////////////////////
    
     //New movement
-    // This is the rate of accelleration after the function "Accell()" is called.
+    // This is the rate of acceleration after the function "Accelerate()" is called.
     // Higher values will cause the object to reach the "speedLimit" in less time.
-    public float accel = 0.8f;
+    public float acceleration = 0.8f;
 
     // This is the the amount of velocity retained after the function "Slow()" is called.
     // Lower values cause quicker stops. A value of "1.0" will never stop. Values above "1.0" will speed up.
@@ -28,26 +30,26 @@ public class Player : MonoBehaviour {
     // This is as fast the object is allowed to go.
     public float speedLimit = 10.0f;
 
-    // This is the speed that tells the functon "Slow()" when to stop moving the object.
+    // This is the speed that tells the function "Slow()" when to stop moving the object.
     public float minSpeed = 1.0f;
 
     // This is how long to pause inside "Slow()" before activating the function
-    // "Accell()" to start the script again.
+    // "Accelerate()" to start the script again.
     public float stopTime = 1.0f;
 
     // This variable "currentSpeed" is the major player for dealing with velocity.
-    // The "currentSpeed" is mutiplied by the variable "accel" to speed up inside the function "accell()".
+    // The "currentSpeed" is multiplied by the variable "acceleration" to speed up inside the function "Accelerate()".
     // Again, The "currentSpeed" is multiplied by the variable "inertia" to slow
     // things down inside the function "Slow()".
     private float currentSpeed = 0.0f;
 
-    // The variable "functionState" controlls which function, "Accell()" or "Slow()",
-    // is active. "0" is function "Accell()" and "1" is function "Slow()".
+    // The variable "functionState" controls which function, "Accelerate()" or "Slow()",
+    // is active. "0" is function "Accelerate()" and "1" is function "Slow()".
     private float functionState = 0;
 
-    // The next two variables are used to make sure that while the function "Accell()" is running,
+    // The next two variables are used to make sure that while the function "Accelerate()" is running,
     // the function "Slow()" can not run (as well as the reverse).
-    private bool accelState;
+    private bool accelerationState;
     private bool slowState;
 
     // This variable will store the "active" target object (the waypoint to move to).
@@ -68,6 +70,7 @@ public class Player : MonoBehaviour {
     void Start() {
         controller = GetComponent<Controller2D> ();
         anim = GetComponent<Animator>();
+		attackBool = false;
         functionState = 0;
     }
 
@@ -76,8 +79,13 @@ public class Player : MonoBehaviour {
             velocity.y = 0;
         }
         //collisions.enemyHitBool is set when the controller raycast hits a collider with the enemy tag
-        anim.SetBool("Attack", controller.enemyHitBool);
-
+        //Turn off the attack animation boolean on the next update
+		if(attackBool){
+			anim.SetBool("Attack", false);
+		} else if(!attackBool && controller.enemyHitBool) {
+			anim.SetBool("Attack", controller.enemyHitBool);
+		}
+		
         //Keyboard movement for testing
 //        Vector2 input = new Vector2 (Input.GetAxisRaw ("Horizontal"), Input.GetAxisRaw ("Vertical"));
 //        velocity.x = input.x * moveSpeed;
@@ -86,15 +94,15 @@ public class Player : MonoBehaviour {
 
         /////////////////////////////////////////////////////////////////////
         //New movement
-        // If functionState variable is currently "0" then run "Accell()".
-        // Withouth the "if", "Accell()" would run every frame.
+        // If functionState variable is currently "0" then run "Accelerate()".
+        // Without the "if", "Accelerate()" would run every frame.
         if (functionState == 0)
         {
-            Accell();
+            Accelerate();
         }
 
         // If functionState variable is currently "1" then run "Slow()".
-        // Withouth the "if", "Slow()" would run every frame.
+        // Without the "if", "Slow()" would run every frame.
         if (functionState == 1)
         {
             StartCoroutine(Slow());
@@ -113,26 +121,26 @@ public class Player : MonoBehaviour {
         gameObject.SetActive(false);
     }
 
-    // I declared "Accell()".
-    void Accell ()
+    // I declared "Accelerate()".
+    void Accelerate ()
     {
-        if (accelState == false)
+        if (accelerationState == false)
         {
-            // Make sure that if Accell() is running, Slow() can not run.
-            accelState = true;
+            // Make sure that if Accelerate() is running, Slow() can not run.
+            accelerationState = true;
             slowState = false;
         }
 
-        // Now do the accelleration toward the active waypoint untill the "speedLimit" is reached
-        currentSpeed = currentSpeed + accel * accel;
-        velocity.x = currentSpeed;
+        // Now do the acceleration toward the active waypoint until the "speedLimit" is reached
+        currentSpeed = currentSpeed + acceleration * acceleration;
+        velocity.x = currentSpeed * direction;
         controller.Move (velocity * Time.deltaTime);
         //transform.Translate (0,0,Time.deltaTime * currentSpeed);
 
         // When the "speedlimit" is reached or exceeded ...
         if (currentSpeed >= speedLimit)
         {
-            // ... turn off accelleration and set "currentSpeed" to be
+            // ... turn off acceleration and set "currentSpeed" to be
             // exactly the "speedLimit". Without this, the "currentSpeed
             // will be slightly above "speedLimit"
             currentSpeed = speedLimit;
@@ -164,14 +172,16 @@ public class Player : MonoBehaviour {
     {
         if (slowState == false) //
         {
-            // Make sure that if Slow() is running, Accell() can not run.
-            accelState = false;
+            // Make sure that if Slow() is running, Accelerate() can not run.
+            accelerationState = false;
             slowState = true;
         }
 
         // Begin to do the slow down (or speed up if inertia is set above "1.0" in the inspector).
         currentSpeed = currentSpeed * inertia;
-        transform.Translate (0,0,Time.deltaTime * currentSpeed);
+		velocity.x = currentSpeed * direction;
+		controller.Move (velocity * Time.deltaTime);
+        //transform.Translate (0,0,Time.deltaTime * currentSpeed);
 
         // When the "minSpeed" is reached or exceeded ...
         if (currentSpeed <= minSpeed)
@@ -180,9 +190,8 @@ public class Player : MonoBehaviour {
             currentSpeed = 0.0f;
             // Wait for the amount of time set in "stopTime" before moving to next waypoint.
             yield return new WaitForSeconds(stopTime);
-            // Activate the function "Accell()" to move to next waypoint.
+            // Activate the function "Accelerate()" to move to next waypoint.
             functionState = 0;
         }
     }
-
 }
