@@ -5,19 +5,18 @@ using System.Collections;
 [RequireComponent (typeof (PlayerStats))]
 public class Player : MonoBehaviour {
 
-    public float moveSpeed = 2.0;
 	public float direction = -1.0f;
 	
-    float gravity = -20.0;
+    float gravity = -20.0f;
     Vector3 velocity;
 
     Controller2D controller;
 
     Animator anim;
-	bool attackBool;
+    bool attacked;
+    bool attackedRecently;
 	
 ////////////////////////////////////////////////////////////////
-   
     //New movement
     // This is the rate of acceleration after the function "Accelerate()" is called.
     // Higher values will cause the object to reach the "speedLimit" in less time.
@@ -45,7 +44,7 @@ public class Player : MonoBehaviour {
 
     // The variable "functionState" controls which function, "Accelerate()" or "Slow()",
     // is active. "0" is function "Accelerate()" and "1" is function "Slow()".
-    private float functionState = 0;
+    private int functionState = 0;
 
     // The next two variables are used to make sure that while the function "Accelerate()" is running,
     // the function "Slow()" can not run (as well as the reverse).
@@ -63,14 +62,10 @@ public class Player : MonoBehaviour {
     // in the previously mentioned array variable "waypoints", is currently active.
     private int WPindexPointer;
 
-    /// <summary>
-    /// ///////////////////////////////////////////
-    /// </summary>
-
     void Start() {
         controller = GetComponent<Controller2D> ();
         anim = GetComponent<Animator>();
-		attackBool = false;
+		attackedRecently = false;
         functionState = 0;
     }
 
@@ -80,40 +75,34 @@ public class Player : MonoBehaviour {
         }
         //collisions.enemyHitBool is set when the controller raycast hits a collider with the enemy tag
         //Turn off the attack animation boolean on the next update
-		if(attackBool){
-			anim.SetBool("Attack", false);
-		} else if(!attackBool && controller.enemyHitBool) {
-			anim.SetBool("Attack", controller.enemyHitBool);
-		}
-		
-        //Keyboard movement for testing
-//        Vector2 input = new Vector2 (Input.GetAxisRaw ("Horizontal"), Input.GetAxisRaw ("Vertical"));
-//        velocity.x = input.x * moveSpeed;
-//        velocity.y += gravity * Time.deltaTime;
-//        controller.Move (velocity * Time.deltaTime);
+        if(attacked && !attackedRecently) {
+            attackedRecently = true;
+            anim.SetBool("Attack", attacked);
+            StartCoroutine(ResetBools(2.0f));
+        } else {
+            anim.SetBool("Attack", false);
+        }
 
-        /////////////////////////////////////////////////////////////////////
-        //New movement
         // If functionState variable is currently "0" then run "Accelerate()".
         // Without the "if", "Accelerate()" would run every frame.
-        if (functionState == 0)
-        {
+        if (functionState == 0){
             Accelerate();
         }
 
         // If functionState variable is currently "1" then run "Slow()".
         // Without the "if", "Slow()" would run every frame.
-        if (functionState == 1)
-        {
+        if (functionState == 1){
             StartCoroutine(Slow());
         }
 
         waypoint = waypoints[WPindexPointer]; //Keep the object pointed toward the current Waypoint object.
 
-        /////////////////////////////////////////////////////////////////////
-
-        //This is mine
+        //For walk animation
         anim.SetFloat("Speed", velocity.x);
+    }
+
+    public void SetAttacked(){
+        attacked = true;
     }
 
     public void Die(){
@@ -121,11 +110,8 @@ public class Player : MonoBehaviour {
         gameObject.SetActive(false);
     }
 
-    // I declared "Accelerate()".
-    void Accelerate ()
-    {
-        if (accelerationState == false)
-        {
+    void Accelerate (){
+        if (accelerationState == false){
             // Make sure that if Accelerate() is running, Slow() can not run.
             accelerationState = true;
             slowState = false;
@@ -135,21 +121,15 @@ public class Player : MonoBehaviour {
         currentSpeed = currentSpeed + acceleration * acceleration;
         velocity.x = currentSpeed * direction;
         controller.Move (velocity * Time.deltaTime);
-        //transform.Translate (0,0,Time.deltaTime * currentSpeed);
 
         // When the "speedlimit" is reached or exceeded ...
-        if (currentSpeed >= speedLimit)
-        {
-            // ... turn off acceleration and set "currentSpeed" to be
-            // exactly the "speedLimit". Without this, the "currentSpeed
-            // will be slightly above "speedLimit"
+        if (currentSpeed >= speedLimit){
+            // Turn off acceleration and set "currentSpeed" to be the "speedLimit"
             currentSpeed = speedLimit;
         }
     }
-
-    //The function "OnTriggerEnter" is called when a collision happens.
-    void OnTriggerEnter ()
-    {
+        
+    public void WaypointReached (){
         // When the GameObject collides with the waypoint's collider,
         // activate "Slow()" by setting "functionState" to "1".
         functionState = 1;
@@ -167,7 +147,6 @@ public class Player : MonoBehaviour {
         }
     }
 
-    // I declared "Slow()".
     IEnumerator Slow()
     {
         if (slowState == false) //
@@ -179,8 +158,8 @@ public class Player : MonoBehaviour {
 
         // Begin to do the slow down (or speed up if inertia is set above "1.0" in the inspector).
         currentSpeed = currentSpeed * inertia;
-		velocity.x = currentSpeed * direction;
-		controller.Move (velocity * Time.deltaTime);
+        velocity.x = currentSpeed * direction;
+        controller.Move (velocity * Time.deltaTime);
         //transform.Translate (0,0,Time.deltaTime * currentSpeed);
 
         // When the "minSpeed" is reached or exceeded ...
@@ -193,5 +172,14 @@ public class Player : MonoBehaviour {
             // Activate the function "Accelerate()" to move to next waypoint.
             functionState = 0;
         }
+    }
+
+    IEnumerator ResetBools(float seconds) {
+        yield return new WaitForSeconds(seconds);
+        attackedRecently = false;
+    }
+
+    public void SetFunctionState(int state){
+        functionState = state;
     }
 }

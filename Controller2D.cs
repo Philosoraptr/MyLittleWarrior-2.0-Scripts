@@ -18,9 +18,6 @@ public class Controller2D : MonoBehaviour {
     RaycastOrigins raycastOrigins;
     public CollisionInfo collisions;
 
-    public bool enemyHitBool;
-    public bool exitHitBool;
-
     void Start() {
         boxCollider = GetComponent<BoxCollider2D> ();
         CalculateRaySpacing ();
@@ -57,34 +54,8 @@ public class Controller2D : MonoBehaviour {
 
                 collisions.left = directionX == -1;
                 collisions.right = directionX == 1;
-                Debug.Log(hit.collider.tag);
-                switch(hit.collider.tag){
-                    case "Exit":
-                        hit.collider.gameObject.GetComponent<Warp>().WarpToTarget(gameObject);
-                    // This is to avoid multiple calls
-                        if(!exitHitBool){
-                            Debug.Log("exitHit");
-                            exitHitBool = true;
-                            StartCoroutine(ResetHitBools(2f)); //reset the exitHit boolean, so it can be used again
-                            gameController.GetComponent<EventCollisions>().ExitCollision();
-                        }
-                        break;
-                    case "Enemy":
-                        collisions.enemy = true;
-                    // This is to avoid multiple calls
-                        if(!enemyHitBool){
-                            enemyHitBool = true;
-                            StartCoroutine(ResetHitBools(2f)); //reset the enemyHit boolean, so it can be used again
-                            gameController.GetComponent<EventCollisions>().EnemyCollision(hit.collider.gameObject, gameObject);
-                        }
-                        break;
-                    case "Chest":
-                        gameController.GetComponent<EventCollisions>().ChestCollision(hit.collider.gameObject, gameObject);
-                        //Player should do a celebration animation here
-                        break;
-                    default:
-                        break;
-                }
+                //This controls what should happen when a collision occurs, based on the object collided with
+                gameController.GetComponent<EventCollisions>().ProcessCollision(hit.collider);
             }
         }
     }
@@ -130,10 +101,6 @@ public class Controller2D : MonoBehaviour {
         verticalRaySpacing = bounds.size.x / (verticalRayCount - 1);
     }
 
-    void ChangeLevel(int index){
-        SceneManager.LoadScene(index);
-    }
-
     struct RaycastOrigins {
         public Vector2 topLeft, topRight;
         public Vector2 bottomLeft, bottomRight;
@@ -142,18 +109,10 @@ public class Controller2D : MonoBehaviour {
     public struct CollisionInfo {
         public bool above, below;
         public bool left, right;
-        public bool enemy;
 
         public void Reset() {
             above = below = false;
             left = right = false;
-            enemy = false;
         }
-    }
-
-    public IEnumerator ResetHitBools(float seconds) {
-        yield return new WaitForSeconds(seconds);
-        enemyHitBool = false;
-        exitHitBool = false;
     }
 }
