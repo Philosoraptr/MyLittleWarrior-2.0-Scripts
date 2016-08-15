@@ -32,11 +32,15 @@ public class EventCollisions : MonoBehaviour {
                     EnemyCollision(hitCollider.gameObject);
                 }
                 //Sets the player's attacked bool to yes
-                player.GetComponent<Player>().SetAttacked();
+                player.GetComponent<Player>().SetAttack();
                 break;
             case "Chest":
                 ChestCollision(hitCollider.gameObject);
                 //Player should do a celebration animation here
+                break;
+            case "Herb":
+                HerbCollision(hitCollider.gameObject);
+                //Player should do a gathering animation here
                 break;
             default:
                 break;
@@ -63,8 +67,7 @@ public class EventCollisions : MonoBehaviour {
     }
 
     public void ExitCollision(){
-        EventController.EventTypes eventType = 
-            (EventController.EventTypes)Random.Range(0,2);
+        EventController.EventTypes eventType = (EventController.EventTypes)Random.Range(0,3);
         gameObject.GetComponent<EventController>().Spawn(eventType);
     }
 
