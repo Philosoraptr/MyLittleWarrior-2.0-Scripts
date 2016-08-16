@@ -6,6 +6,7 @@ using System.Collections;
 public class Player : MonoBehaviour {
 
     public enum MoveState{accelerate, decelerate, pause};
+    public enum EventAnimation{Attack, Celebrate};
 
     public float direction = -1.0f;
 
@@ -15,8 +16,9 @@ public class Player : MonoBehaviour {
     Controller2D controller;
 
     Animator anim;
-    bool attack;
-    bool attackedRecently;
+    EventAnimation currentEventAnim;
+    bool eventAnimOn;
+    bool eventAnimRecent;
 	
 ////////////////////////////////////////////////////////////////
     //New movement
@@ -65,8 +67,8 @@ public class Player : MonoBehaviour {
     void Start() {
         controller = GetComponent<Controller2D> ();
         anim = GetComponent<Animator>();
-        attack = false;
-        attackedRecently = false;
+        eventAnimOn = false;
+        eventAnimRecent = false;
 //        functionState = 0;
         playerMoveState = MoveState.accelerate;
     }
@@ -77,16 +79,8 @@ public class Player : MonoBehaviour {
         }
         //get gravity going
         velocity.y += gravity * Time.deltaTime;
-        //Turn off the attack animation boolean on the next update
-        if(attack && !attackedRecently) {
-            attackedRecently = true;
-            if(!anim.GetCurrentAnimatorStateInfo(0).IsName("Attack")){
-                anim.SetTrigger("Attack");
-            }
-            //This stops the animation being called repeatedly while the player is colliding with the enemy
-            StartCoroutine(ResetBools(5.0f));
-        }
-
+        //Play triggered event animations
+        TriggeredAnimationPlayer();
         // If functionState variable is currently "0" then run "Accelerate()".
         // Without the "if", "Accelerate()" would run every frame.
         if (playerMoveState == MoveState.accelerate){
@@ -105,8 +99,21 @@ public class Player : MonoBehaviour {
         anim.SetFloat("Speed", velocity.x);
     }
 
-    public void SetAttack(){
-        attack = true;
+    public void TriggerAnimation(EventAnimation eventAnim){
+        currentEventAnim = eventAnim;
+        eventAnimOn = true;
+    }
+
+    void TriggeredAnimationPlayer(){
+        //Two bools are used to prevent repeated animation calls
+        if(eventAnimOn && !eventAnimRecent) {
+            eventAnimRecent = true;
+            if(!anim.GetCurrentAnimatorStateInfo(0).IsName(currentEventAnim.ToString())){
+                anim.SetTrigger(currentEventAnim.ToString());
+            }
+            //This stops an animation being called repeatedly during collision
+            StartCoroutine(ResetBools(5.0f));
+        }
     }
 
     public void Die(){
@@ -177,8 +184,8 @@ public class Player : MonoBehaviour {
 
     IEnumerator ResetBools(float seconds) {
         yield return new WaitForSeconds(seconds);
-        attackedRecently = false;
-        attack = false;
+        eventAnimRecent = false;
+        eventAnimOn = false;
     }
 
     public void SetPlayerMoveState(MoveState state){

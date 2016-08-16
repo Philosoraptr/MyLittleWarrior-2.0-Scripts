@@ -62,10 +62,11 @@ public class PlayerStats : MonoBehaviour {
 
     public void IncreasePotions(int potion){
         currentPotions += potion;
+        UsePotion();
         if(currentPotions > maxPotions){
             currentPotions = maxPotions;
-            ShowHidePotionIcons();
         }
+        ShowHidePotionIcons();
     }
 
     void ShowHidePotionIcons(){

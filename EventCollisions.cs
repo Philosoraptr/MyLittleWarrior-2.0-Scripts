@@ -32,15 +32,15 @@ public class EventCollisions : MonoBehaviour {
                     EnemyCollision(hitCollider.gameObject);
                 }
                 //Sets the player's attacked bool to yes
-                player.GetComponent<Player>().SetAttack();
+                player.GetComponent<Player>().TriggerAnimation(Player.EventAnimation.Attack);
                 break;
             case "Chest":
                 ChestCollision(hitCollider.gameObject);
-                //Player should do a celebration animation here
+                player.GetComponent<Player>().TriggerAnimation(Player.EventAnimation.Celebrate);
                 break;
             case "Herb":
                 HerbCollision(hitCollider.gameObject);
-                //Player should do a gathering animation here
+                player.GetComponent<Player>().TriggerAnimation(Player.EventAnimation.Celebrate);
                 break;
             default:
                 break;
